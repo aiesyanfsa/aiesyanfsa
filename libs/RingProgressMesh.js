@@ -2,15 +2,18 @@ import { Mesh, PlaneBufferGeometry, ShaderMaterial } from './three/three.module.
 
 const vshader = `
 varying vec2 vUv;
-void main() {	
+void main() {    
   vUv = uv;
   gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
 }
-`
+`;
+
 const fshader = `
 #define PI2 6.28318530718
 
 uniform float uProgress;
+uniform vec4 uBgColor;
+uniform vec4 uArcColor;
 
 varying vec2 vUv;
 
@@ -41,45 +44,54 @@ float arc(vec2 pt, vec2 center, float radius, float percent){
 
 void main (void)
 {
-  vec4 bgColor = vec4(0.0, 0.0, 0.0, 1.0);
-  vec4 arcColor = vec4(1.0);
   vec2 center = vec2(0.5);
   vec4 color = vec4(0.0);
-  color += circle(vUv, center, 0.5) * bgColor;
-  color += arc(vUv, center, 0.4, uProgress) * arcColor;
+  color += circle(vUv, center, 0.5) * uBgColor;
+  color += arc(vUv, center, 0.4, uProgress) * uArcColor;
   gl_FragColor = color; 
-}`
+}
+`;
 
-class RingProgressMesh extends Mesh{
-    constructor( scale = 1 ){
+class RingProgressMesh extends Mesh {
+    constructor(scale = 1, bgColor = [0.0, 0.0, 0.0, 1.0], arcColor = [1.0, 1.0, 1.0, 1.0]) {
         super();
         
         const uniforms = {
           uProgress: { value: 0.0 },
-        }
+          uBgColor: { value: new THREE.Vector4(...bgColor) },
+          uArcColor: { value: new THREE.Vector4(...arcColor) }
+        };
 
-        this.material = new ShaderMaterial( {
+        this.material = new ShaderMaterial({
           uniforms: uniforms,
           vertexShader: vshader,
           fragmentShader: fshader,
           alphaTest: 0.5,
           transparent: true
-        } );
+        });
         
         this.geometry.dispose();
         this.geometry = new PlaneBufferGeometry();
-        this.scale.set( scale, scale, scale );
+        this.scale.set(scale, scale, scale);
         this.progress = 1;
     }
     
-    set progress( value ){
-        if ( value<0 ) value = 0;
-        if ( value>1 ) value = 1;
+    set progress(value) {
+        if (value < 0) value = 0;
+        if (value > 1) value = 1;
         this.material.uniforms.uProgress.value = value;
     }
     
-    get progress(){
+    get progress() {
         return this.material.uniforms.uProgress.value;
+    }
+
+    set backgroundColor(color) {
+        this.material.uniforms.uBgColor.value = new THREE.Vector4(...color);
+    }
+
+    set arcColor(color) {
+        this.material.uniforms.uArcColor.value = new THREE.Vector4(...color);
     }
 }
 
